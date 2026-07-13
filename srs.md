@@ -86,19 +86,19 @@ Tài liệu bao gồm các đặc tả cho các phân hệ chính của dự án
 
 **2.1 Sơ đồ quan hệ đối tượng (ERD)**
 
-![diagram](./diagrams\srs_temp-1.svg)
+![diagram](./diagrams/srs_temp-1.svg)
 
 **2.2 Sơ đồ Use Case**
 
-![diagram](./diagrams\srs_temp-2.svg)
+![diagram](./diagrams/srs_temp-2.svg)
 
 **2.3 Sơ đồ luồng (User Flow: Nghỉ phép)**
 
-![diagram](./diagrams\srs_temp-3.svg)
+![diagram](./diagrams/srs_temp-3.svg)
 
 **2.4 Sơ đồ chuyển trạng thái (State Diagram: Đơn xin nghỉ phép)**
 
-![diagram](./diagrams\srs_temp-4.svg)
+![diagram](./diagrams/srs_temp-4.svg)
 
 **2.5 Phân quyền**
 
@@ -123,7 +123,7 @@ Tài liệu bao gồm các đặc tả cho các phân hệ chính của dự án
 - **ROLE_EMPLOYEE:** Isolate Data. Chỉ truy xuất được dữ liệu có `user_id` của chính mình.
 
 **2.6 Site Map**
-![diagram](./diagrams\srs_temp-5.svg)
+![diagram](./diagrams/srs_temp-5.svg)
 
 ---
 
