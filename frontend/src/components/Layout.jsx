@@ -1,59 +1,75 @@
-import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { Layout as AntLayout, Menu, Dropdown, Avatar } from "antd";
-import { DashboardOutlined, TeamOutlined, ClockCircleOutlined, CalendarOutlined, UserOutlined, LogoutOutlined } from "@ant-design/icons";
+import React from 'react';
+import { Layout as AntLayout, Menu, Dropdown, Avatar } from 'antd';
+import { 
+  DashboardOutlined, 
+  TeamOutlined, 
+  CalendarOutlined, 
+  ClockCircleOutlined,
+  UserOutlined,
+  LogoutOutlined
+} from '@ant-design/icons';
+import { Outlet, useNavigate, useLocation, Navigate } from 'react-router-dom';
 
 const { Header, Sider, Content } = AntLayout;
 
-const MainLayout = () => {
+export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user')) || { fullName: 'Người dùng' };
+
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
 
   const menuItems = [
-    { key: "/dashboard", icon: <DashboardOutlined />, label: "Dashboard" },
-    { key: "/employees", icon: <TeamOutlined />, label: "Nhân sự" },
-    { key: "/attendance", icon: <ClockCircleOutlined />, label: "Chấm công" },
-    { key: "/leave", icon: <CalendarOutlined />, label: "Nghỉ phép" },
-    { key: "/profile", icon: <UserOutlined />, label: "Hồ sơ của tôi" },
+    { key: '/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
+    { key: '/employees', icon: <TeamOutlined />, label: 'Nhân viên' },
+    { key: '/attendance', icon: <ClockCircleOutlined />, label: 'Chấm công' },
+    { key: '/leave', icon: <CalendarOutlined />, label: 'Nghỉ phép' },
   ];
 
-  const userMenu = {
+  const profileMenu = {
     items: [
-      { key: "1", icon: <UserOutlined />, label: "Hồ sơ cá nhân", onClick: () => navigate("/profile") },
-      { key: "2", icon: <LogoutOutlined />, label: "Đăng xuất", danger: true, onClick: () => navigate("/login") },
+      { key: 'profile', icon: <UserOutlined />, label: 'Hồ sơ', onClick: () => navigate('/profile') },
+      { key: 'logout', icon: <LogoutOutlined />, label: 'Đăng xuất', onClick: handleLogout },
     ]
   };
 
   return (
-    <AntLayout style={{ minHeight: "100vh" }}>
-      <Sider theme="dark" width={250} breakpoint="lg" collapsedWidth="0" style={{ background: '#1e293b' }}>
-        <div style={{ height: 64, margin: 16, color: "white", fontSize: 20, fontWeight: "bold", display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 32, height: 32, background: "#4F46E5", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>HR</div>
-          HRM System
+    <AntLayout style={{ minHeight: '100vh' }}>
+      <Sider theme="dark" style={{ borderRight: '1px solid #001529' }}>
+        <div style={{ height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid #001529', background: '#002140' }}>
+          <h2 style={{ margin: 0, color: '#fff' }}>HRM SYSTEM</h2>
         </div>
         <Menu 
-          theme="dark" 
+          theme="dark"
           mode="inline" 
           selectedKeys={[location.pathname]} 
           items={menuItems} 
           onClick={({key}) => navigate(key)}
-          style={{ background: '#1e293b' }}
+          style={{ borderRight: 0 }}
         />
       </Sider>
       <AntLayout>
-        <Header style={{ padding: "0 24px", background: "#fff", display: "flex", justifyContent: "flex-end", alignItems: "center", boxShadow: "0 1px 4px rgba(0,21,41,.08)", zIndex: 1 }}>
-          <Dropdown menu={userMenu} placement="bottomRight" arrow>
-            <div style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 8, fontWeight: 500 }}>
-              <Avatar style={{ backgroundColor: '#4F46E5' }}>A</Avatar>
-              Admin (HR)
+        <Header style={{ background: '#001529', padding: '0 24px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', borderBottom: '1px solid #001529' }}>
+          <Dropdown menu={profileMenu} placement="bottomRight">
+            <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: '#fff' }}>
+              <Avatar icon={<UserOutlined />} />
+              <span>{user.fullName}</span>
             </div>
           </Dropdown>
         </Header>
-        <Content style={{ margin: "24px", padding: 24, background: "transparent", overflowY: "auto" }}>
+        <Content style={{ margin: '24px', background: '#fff', padding: 24, borderRadius: 8, minHeight: 280 }}>
           <Outlet />
         </Content>
       </AntLayout>
     </AntLayout>
   );
-};
-
-export default MainLayout;
+}

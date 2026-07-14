@@ -1,43 +1,51 @@
-import { Form, Input, Button, Checkbox, Card } from "antd";
-import { UserOutlined, LockOutlined } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import React from 'react';
+import { Form, Input, Button, Card, Typography, message } from 'antd';
+import { UserOutlined, LockOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
+import axiosClient from '../api/axiosClient';
 
-const Login = () => {
+const { Title } = Typography;
+
+export default function Login() {
   const navigate = useNavigate();
+  const [loading, setLoading] = React.useState(false);
 
-  const onFinish = (values) => {
-    navigate("/dashboard");
+  const onFinish = async (values) => {
+    setLoading(true);
+    try {
+      const response = await axiosClient.post('/auth/login', {
+        email: values.email,
+        password: values.password
+      });
+      const data = response.data;
+      localStorage.setItem('token', data.accessToken);
+      localStorage.setItem('user', JSON.stringify({ fullName: data.fullName, role: data.role }));
+      message.success('Đăng nhập thành công!');
+      navigate('/dashboard');
+    } catch (error) {
+      console.error(error);
+      message.error(error.response?.data?.message || 'Tài khoản hoặc mật khẩu không chính xác!');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #4F46E5 0%, #3B82F6 100%)", padding: 16 }}>
-      <Card style={{ width: "100%", maxWidth: 400, borderRadius: 16, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)", border: 'none' }}>
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div style={{ width: 64, height: 64, background: "#4F46E5", color: "white", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, margin: "0 auto 16px" }}>
-            <UserOutlined />
-          </div>
-          <h1 style={{ fontSize: 24, fontWeight: "bold", margin: 0 }}>Đăng nhập</h1>
-          <p style={{ color: "#6B7280", marginTop: 8 }}>Hệ thống Quản lý Nhân sự HRM</p>
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f0f2f5' }}>
+      <Card style={{ width: 400, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <Title level={3}>HRM System</Title>
+          <p>Đăng nhập để tiếp tục</p>
         </div>
-
-        <Form name="login" initialValues={{ remember: true }} onFinish={onFinish} size="large">
-          <Form.Item name="email" rules={[{ required: true, message: 'Vui lòng nhập Email!' }]}>
-            <Input prefix={<UserOutlined style={{ color: "rgba(0,0,0,.25)" }} />} placeholder="Email (admin@hrm.com)" />
+        <Form name="login" onFinish={onFinish} layout="vertical">
+          <Form.Item name="email" rules={[{ required: true, message: 'Vui lòng nhập Email!' }, { type: 'email', message: 'Email không hợp lệ!' }]}>
+            <Input prefix={<UserOutlined />} placeholder="Email" size="large" />
           </Form.Item>
-
-          <Form.Item name="password" rules={[{ required: true, message: 'Vui lòng nhập Mật khẩu!' }]}>
-            <Input.Password prefix={<LockOutlined style={{ color: "rgba(0,0,0,.25)" }} />} placeholder="Mật khẩu" />
+          <Form.Item name="password" rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}>
+            <Input.Password prefix={<LockOutlined />} placeholder="Mật khẩu" size="large" />
           </Form.Item>
-
           <Form.Item>
-            <Form.Item name="remember" valuePropName="checked" noStyle>
-              <Checkbox>Ghi nhớ</Checkbox>
-            </Form.Item>
-            <a style={{ float: 'right' }} href="">Quên mật khẩu?</a>
-          </Form.Item>
-
-          <Form.Item style={{ marginBottom: 0 }}>
-            <Button type="primary" htmlType="submit" style={{ width: '100%', height: 40 }}>
+            <Button type="primary" htmlType="submit" size="large" block loading={loading}>
               Đăng nhập
             </Button>
           </Form.Item>
@@ -45,6 +53,4 @@ const Login = () => {
       </Card>
     </div>
   );
-};
-
-export default Login;
+}
