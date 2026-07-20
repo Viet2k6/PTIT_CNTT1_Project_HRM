@@ -6,7 +6,8 @@ import {
   CalendarOutlined, 
   ClockCircleOutlined,
   UserOutlined,
-  LogoutOutlined
+  LogoutOutlined,
+  DollarOutlined
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation, Navigate } from 'react-router-dom';
 
@@ -16,7 +17,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const token = localStorage.getItem('token');
-  const user = JSON.parse(localStorage.getItem('user')) || { fullName: 'Người dùng' };
+  const user = JSON.parse(localStorage.getItem('user')) || { fullName: 'Người dùng', role: 'ROLE_EMPLOYEE' };
 
   if (!token) {
     return <Navigate to="/login" replace />;
@@ -28,12 +29,14 @@ export default function Layout() {
     navigate('/login');
   };
 
+  // PHÂN QUYỀN (RBAC): Chỉ Admin mới thấy Quản lý nhân viên
   const menuItems = [
     { key: '/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
-    { key: '/employees', icon: <TeamOutlined />, label: 'Nhân viên' },
+    user.role === 'ROLE_ADMIN' ? { key: '/employees', icon: <TeamOutlined />, label: 'Quản lý nhân sự' } : null,
     { key: '/attendance', icon: <ClockCircleOutlined />, label: 'Chấm công' },
     { key: '/leave', icon: <CalendarOutlined />, label: 'Nghỉ phép' },
-  ];
+    { key: '/salary', icon: <DollarOutlined />, label: 'Bảng lương' },
+  ].filter(Boolean); // Lọc bỏ các giá trị null
 
   const profileMenu = {
     items: [
@@ -62,7 +65,7 @@ export default function Layout() {
           <Dropdown menu={profileMenu} placement="bottomRight">
             <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, color: '#fff' }}>
               <Avatar icon={<UserOutlined />} />
-              <span>{user.fullName}</span>
+              <span>{user.fullName} ({user.role === 'ROLE_ADMIN' ? 'Admin' : 'NV'})</span>
             </div>
           </Dropdown>
         </Header>

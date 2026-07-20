@@ -1,55 +1,60 @@
-import { Row, Col, Card, Statistic, Table, Typography } from "antd";
-import { UserOutlined, CheckCircleOutlined, ClockCircleOutlined, CalendarOutlined } from "@ant-design/icons";
+import React, { useEffect, useState } from 'react';
+import { Row, Col, Card, Statistic } from 'antd';
+import { TeamOutlined, BankOutlined, FileTextOutlined } from '@ant-design/icons';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import axiosClient from '../api/axiosClient';
 
-const { Title } = Typography;
+export default function Dashboard() {
+  const [stats, setStats] = useState({ totalEmployees: 0, totalDepartments: 0, pendingLeaves: 0 });
+  const [charts, setCharts] = useState([]);
 
-const Dashboard = () => {
-  const recentEmployees = [
-    { key: '1', name: 'Nguyễn Văn A', department: 'IT', position: 'Developer', date: '10/07/2026' },
-    { key: '2', name: 'Trần Thị B', department: 'HR', position: 'Chuyên viên', date: '08/07/2026' },
-    { key: '3', name: 'Lê Văn C', department: 'Marketing', position: 'Trưởng phòng', date: '01/07/2026' },
-  ];
-
-  const columns = [
-    { title: 'Họ tên', dataIndex: 'name', key: 'name' },
-    { title: 'Phòng ban', dataIndex: 'department', key: 'department' },
-    { title: 'Chức vụ', dataIndex: 'position', key: 'position' },
-    { title: 'Ngày gia nhập', dataIndex: 'date', key: 'date' },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const resStats = await axiosClient.get('/dashboard/stats');
+        setStats(resStats.data);
+        const resCharts = await axiosClient.get('/dashboard/charts');
+        setCharts(resCharts.data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchData();
+  }, []);
 
   return (
     <div>
-      <Title level={2} style={{ marginTop: 0, marginBottom: 24 }}>Bảng điều khiển (Dashboard)</Title>
-      
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12} md={6}>
-          <Card bordered={false}>
-            <Statistic title="Tổng nhân sự" value={124} prefix={<UserOutlined style={{ color: '#4F46E5' }} />} />
+      <h2 style={{ marginBottom: 24 }}>Dashboard Tổng Quan</h2>
+      <Row gutter={16}>
+        <Col span={8}>
+          <Card bordered={false} style={{ background: '#e6f7ff' }}>
+            <Statistic title="Tổng Nhân Viên" value={stats.totalEmployees} prefix={<TeamOutlined />} valueStyle={{ color: '#1890ff' }} />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card bordered={false}>
-            <Statistic title="Đã Check-in" value={118} prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />} />
+        <Col span={8}>
+          <Card bordered={false} style={{ background: '#f6ffed' }}>
+            <Statistic title="Phòng Ban" value={stats.totalDepartments} prefix={<BankOutlined />} valueStyle={{ color: '#52c41a' }} />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card bordered={false}>
-            <Statistic title="Đi muộn" value={4} prefix={<ClockCircleOutlined style={{ color: '#faad14' }} />} />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card bordered={false}>
-            <Statistic title="Nghỉ phép" value={2} prefix={<CalendarOutlined style={{ color: '#f5222d' }} />} />
+        <Col span={8}>
+          <Card bordered={false} style={{ background: '#fffbe6' }}>
+            <Statistic title="Đơn Nghỉ Phép Chờ Duyệt" value={stats.pendingLeaves} prefix={<FileTextOutlined />} valueStyle={{ color: '#faad14' }} />
           </Card>
         </Col>
       </Row>
 
-      <div style={{ background: 'white', padding: 24, borderRadius: 12 }}>
-        <Title level={4} style={{ marginTop: 0, marginBottom: 16 }}>Nhân viên mới gần đây</Title>
-        <Table columns={columns} dataSource={recentEmployees} pagination={false} size="middle" />
+      <div style={{ marginTop: 40, height: 400 }}>
+        <h3>Thống kê nhân sự theo Phòng ban</h3>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={charts} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" />
+            <YAxis />
+            <Tooltip />
+            <Bar dataKey="value" fill="#8884d8" name="Số lượng NV" />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
-};
-
-export default Dashboard;
+}

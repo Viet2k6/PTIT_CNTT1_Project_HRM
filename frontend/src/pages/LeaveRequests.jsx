@@ -1,68 +1,102 @@
-import { Button, Typography, Table, Tag, Row, Col, Card, Statistic, Space } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import React, { useEffect, useState } from 'react';
+import { Table, Button, Space, Modal, Form, Input, DatePicker, message, Tag } from 'antd';
+import { PlusOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
+import axiosClient from '../api/axiosClient';
+import dayjs from 'dayjs';
 
-const { Title } = Typography;
+export default function LeaveRequests() {
+  const [requests, setRequests] = useState([]);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [form] = Form.useForm();
+  
+  const user = JSON.parse(localStorage.getItem('user'));
+  const isAdmin = user?.role === 'ROLE_ADMIN';
 
-const LeaveRequests = () => {
+  const fetchRequests = async () => {
+    try {
+      const endpoint = isAdmin ? '/leaves/all' : '/leaves/my-requests';
+      const res = await axiosClient.get(endpoint);
+      setRequests(res.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
+  const handleApply = async () => {
+    try {
+      const values = await form.validateFields();
+      await axiosClient.post('/leaves/apply', {
+        startDate: values.dates[0].format('YYYY-MM-DD'),
+        endDate: values.dates[1].format('YYYY-MM-DD'),
+        reason: values.reason
+      });
+      message.success('Đã gửi đơn xin nghỉ phép!');
+      setIsModalVisible(false);
+      form.resetFields();
+      fetchRequests();
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const handleAction = async (id, action) => {
+    try {
+      await axiosClient.put(`/leaves/${id}/${action}`);
+      message.success(`Đã ${action === 'approve' ? 'Duyệt' : 'Từ chối'} đơn!`);
+      fetchRequests();
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const columns = [
-    { title: 'Ngày tạo', dataIndex: 'createdAt', key: 'createdAt' },
-    { title: 'Từ ngày', dataIndex: 'start', key: 'start' },
-    { title: 'Đến ngày', dataIndex: 'end', key: 'end' },
-    { title: 'Lý do', dataIndex: 'reason', key: 'reason' },
-    { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: status => (
-        <Tag color={status === 'PENDING' ? 'processing' : status === 'APPROVED' ? 'success' : 'error'}>{status}</Tag>
+    { title: 'ID', dataIndex: 'id' },
+    isAdmin && { title: 'Nhân viên', render: (_, r) => r.employee?.fullName },
+    { title: 'Từ ngày', dataIndex: 'startDate' },
+    { title: 'Đến ngày', dataIndex: 'endDate' },
+    { title: 'Lý do', dataIndex: 'reason' },
+    { 
+      title: 'Trạng thái', 
+      dataIndex: 'status',
+      render: (val) => {
+        let color = val === 'APPROVED' ? 'green' : val === 'REJECTED' ? 'red' : 'gold';
+        return <Tag color={color}>{val}</Tag>;
+      }
+    },
+    isAdmin && {
+      title: 'Hành động',
+      render: (_, r) => r.status === 'PENDING' && (
+        <Space>
+          <Button type="primary" icon={<CheckOutlined />} onClick={() => handleAction(r.id, 'approve')} />
+          <Button danger icon={<CloseOutlined />} onClick={() => handleAction(r.id, 'reject')} />
+        </Space>
       )
-    },
-    {
-      title: 'Thao tác',
-      key: 'action',
-      render: (_, record) => (
-        record.status === 'PENDING' ? (
-          <Space>
-            <Button size="small" type="primary" style={{ background: '#52c41a' }}>Duyệt</Button>
-            <Button size="small" danger>Từ chối</Button>
-          </Space>
-        ) : '-'
-      ),
-    },
-  ];
-
-  const data = [
-    { key: '1', createdAt: '10/07/2026', start: '15/07/2026', end: '16/07/2026', reason: 'Việc gia đình', status: 'PENDING' },
-    { key: '2', createdAt: '01/07/2026', start: '02/07/2026', end: '02/07/2026', reason: 'Bị ốm', status: 'APPROVED' },
-  ];
+    }
+  ].filter(Boolean);
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <Title level={2} style={{ margin: 0 }}>Quản lý Nghỉ phép</Title>
-        <Button type="primary" icon={<PlusOutlined />}>Tạo đơn mới</Button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+        <h2>Quản lý Nghỉ phép</h2>
+        {!isAdmin && <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalVisible(true)}>Tạo Đơn Mới</Button>}
       </div>
 
-      <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={8}>
-          <Card bordered={false}>
-            <Statistic title="Quỹ phép năm" value={12} suffix="ngày" />
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card bordered={false}>
-            <Statistic title="Đã sử dụng" value={2} suffix="ngày" valueStyle={{ color: '#cf1322' }} />
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card bordered={false}>
-            <Statistic title="Còn lại" value={10} suffix="ngày" valueStyle={{ color: '#3f8600' }} />
-          </Card>
-        </Col>
-      </Row>
+      <Table dataSource={requests} columns={columns} rowKey="id" />
 
-      <div style={{ background: 'white', padding: 24, borderRadius: 12 }}>
-        <Title level={4} style={{ marginTop: 0, marginBottom: 16 }}>Danh sách đơn xin nghỉ</Title>
-        <Table columns={columns} dataSource={data} />
-      </div>
+      <Modal title="Tạo Đơn Nghỉ Phép" open={isModalVisible} onOk={handleApply} onCancel={() => setIsModalVisible(false)}>
+        <Form form={form} layout="vertical">
+          <Form.Item name="dates" label="Thời gian nghỉ" rules={[{ required: true }]}>
+            <DatePicker.RangePicker style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="reason" label="Lý do" rules={[{ required: true }]}>
+            <Input.TextArea rows={4} />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
-};
-
-export default LeaveRequests;
+}

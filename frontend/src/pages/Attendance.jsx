@@ -1,58 +1,103 @@
-import { useState } from "react";
-import { Button, Typography, Alert, Table, Tag } from "antd";
-import { ClockCircleOutlined, LogoutOutlined } from "@ant-design/icons";
+import React, { useEffect, useState } from 'react';
+import { Table, Button, Card, Row, Col, Typography, message, Tag } from 'antd';
+import { ClockCircleOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import axiosClient from '../api/axiosClient';
 
 const { Title, Text } = Typography;
 
-const Attendance = () => {
-  const [isCheckedIn, setIsCheckedIn] = useState(false);
+export default function Attendance() {
+  const [logs, setLogs] = useState([]);
+  const user = JSON.parse(localStorage.getItem('user'));
+  const isAdmin = user?.role === 'ROLE_ADMIN';
+
+  const fetchLogs = async () => {
+    try {
+      const endpoint = isAdmin ? '/attendance/all' : '/attendance/my-logs';
+      const res = await axiosClient.get(endpoint);
+      setLogs(res.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    fetchLogs();
+  }, []);
+
+  const handleCheckIn = () => {
+    if (!navigator.geolocation) {
+      return message.error('Trình duyệt không hỗ trợ GPS!');
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          await axiosClient.post(`/attendance/check-in?lat=${latitude}&lng=${longitude}`);
+          message.success('Check-in thành công!');
+          fetchLogs();
+        } catch (error) {
+          message.error(error.response?.data?.error || error.response?.data?.message || 'Lỗi Check-in!');
+        }
+      },
+      (error) => {
+        message.error('Vui lòng cho phép truy cập vị trí để chấm công!');
+      }
+    );
+  };
+
+  const handleCheckOut = async () => {
+    try {
+      await axiosClient.post('/attendance/check-out');
+      message.success('Check-out thành công!');
+      fetchLogs();
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Lỗi Check-out!');
+    }
+  };
 
   const columns = [
-    { title: 'Ngày', dataIndex: 'date', key: 'date' },
-    { title: 'Giờ đến', dataIndex: 'in', key: 'in' },
-    { title: 'Giờ về', dataIndex: 'out', key: 'out' },
-    { title: 'Trạng thái', dataIndex: 'status', key: 'status', render: status => (
-        <Tag color={status === 'Đúng giờ' ? 'success' : 'warning'}>{status}</Tag>
+    { title: 'ID', dataIndex: 'id' },
+    isAdmin && { title: 'Nhân viên', render: (_, record) => record.employee?.fullName },
+    { title: 'Ngày làm việc', dataIndex: 'workDate' },
+    { title: 'Giờ vào', dataIndex: 'checkInTime', render: (val) => val ? new Date(val).toLocaleTimeString() : '--:--' },
+    { title: 'Giờ ra', dataIndex: 'checkOutTime', render: (val) => val ? new Date(val).toLocaleTimeString() : '--:--' },
+    { 
+      title: 'Trạng thái', 
+      dataIndex: 'status',
+      render: (val) => (
+        <Tag color={val === 'LATE' ? 'red' : 'green'}>{val}</Tag>
       )
     },
-  ];
-
-  const data = [
-    { key: '1', date: '09/07/2026', in: '07:55 AM', out: '17:05 PM', status: 'Đúng giờ' },
-    { key: '2', date: '08/07/2026', in: '08:10 AM', out: '17:00 PM', status: 'Đi muộn' },
-  ];
+  ].filter(Boolean);
 
   return (
     <div>
-      <Title level={2} style={{ marginTop: 0, marginBottom: 24 }}>Chấm công</Title>
+      <Title level={2}>Quản lý Chấm công</Title>
+      {!isAdmin && (
+        <Row gutter={16} style={{ marginBottom: 24 }}>
+          <Col span={12}>
+            <Card style={{ textAlign: 'center' }}>
+              <ClockCircleOutlined style={{ fontSize: 40, color: '#1890ff', marginBottom: 16 }} />
+              <Title level={4}>Giờ vào ca</Title>
+              <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>08:00 AM</Text>
+              <Button type="primary" size="large" onClick={handleCheckIn}>Check In</Button>
+            </Card>
+          </Col>
+          <Col span={12}>
+            <Card style={{ textAlign: 'center' }}>
+              <CheckCircleOutlined style={{ fontSize: 40, color: '#52c41a', marginBottom: 16 }} />
+              <Title level={4}>Giờ tan ca</Title>
+              <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>05:00 PM</Text>
+              <Button type="default" size="large" onClick={handleCheckOut}>Check Out</Button>
+            </Card>
+          </Col>
+        </Row>
+      )}
 
-      <div style={{ textAlign: "center", padding: "48px 24px", background: "#fff", borderRadius: 16, marginBottom: 32, border: "1px dashed #cbd5e1" }}>
-        <Title level={1} style={{ margin: 0, color: "#4F46E5", fontSize: 48 }}>08:15 AM</Title>
-        <Text type="secondary" style={{ display: "block", marginBottom: 32, fontSize: 16 }}>Thứ Hai, 10 Tháng 7, 2026</Text>
-
-        {!isCheckedIn ? (
-          <Button type="primary" size="large" icon={<ClockCircleOutlined />} onClick={() => setIsCheckedIn(true)} style={{ height: 48, padding: "0 32px", fontSize: 16, borderRadius: 24 }}>
-            Check-in ngay
-          </Button>
-        ) : (
-          <Button danger type="primary" size="large" icon={<LogoutOutlined />} onClick={() => setIsCheckedIn(false)} style={{ height: 48, padding: "0 32px", fontSize: 16, borderRadius: 24 }}>
-            Check-out về
-          </Button>
-        )}
-
-        {isCheckedIn && (
-          <div style={{ marginTop: 24, display: "flex", justifyContent: "center" }}>
-            <Alert message="Bạn đã check-in thành công lúc 08:15 AM. Chúc bạn một ngày làm việc hiệu quả!" type="success" showIcon />
-          </div>
-        )}
-      </div>
-
-      <div style={{ background: 'white', padding: 24, borderRadius: 12 }}>
-        <Title level={4} style={{ marginTop: 0, marginBottom: 16 }}>Lịch sử chấm công gần đây</Title>
-        <Table columns={columns} dataSource={data} pagination={false} />
-      </div>
+      <Card title={isAdmin ? "Lịch sử chấm công toàn công ty" : "Lịch sử chấm công của tôi"}>
+        <Table dataSource={logs} columns={columns} rowKey="id" />
+      </Card>
     </div>
   );
-};
-
-export default Attendance;
+}
